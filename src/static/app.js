@@ -12,6 +12,9 @@ document.addEventListener("DOMContentLoaded", () => {
 
       // Clear loading message
       activitiesList.innerHTML = "";
+      while (activitySelect.options.length > 1) {
+        activitySelect.remove(1);
+      }
 
       // Populate activities list
       Object.entries(activities).forEach(([name, details]) => {
@@ -59,11 +62,24 @@ document.addEventListener("DOMContentLoaded", () => {
       const result = await response.json();
 
       if (response.ok) {
-        messageDiv.textContent = result.message;
+        messageDiv.textContent = result.message || "Signup successful.";
         messageDiv.className = "success";
         signupForm.reset();
+        await fetchActivities();
       } else {
-        messageDiv.textContent = result.detail || "An error occurred";
+        const validationErrors = Array.isArray(result.detail)
+          ? result.detail.map((error) => error.msg).filter(Boolean).join(" ")
+          : result.detail;
+
+        if (response.status === 409) {
+          messageDiv.textContent = result.detail || "You may already be signed up, or this activity is full.";
+        } else if (response.status === 404) {
+          messageDiv.textContent = "The selected activity was not found. Please refresh and try again.";
+        } else if (response.status === 422) {
+          messageDiv.textContent = validationErrors || "Please enter a valid email and select an activity.";
+        } else {
+          messageDiv.textContent = result.detail || "Signup failed. Please try again.";
+        }
         messageDiv.className = "error";
       }
 
